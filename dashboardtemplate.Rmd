@@ -1,0 +1,149 @@
+---
+title: "dashboardtemplate"
+output:
+  flexdashboard::flex_dashboard:
+    navbar:
+      - title: "title"
+    orientation: columns
+    vertical_layout: fill
+    theme: lumen
+---
+
+```{r}
+library(dplyr)
+library(leaflet)
+library(crosstalk)
+library(here)
+library(purrr)
+library(crosstalk)
+
+load(here::here("data/act_crashes_sa2.rda"))
+
+sd <- SharedData$new(act_crashes_sa2)
+```
+
+Map {data-icon="fa-globe-asia"}
+=====================================
+
+Column {data-height=2}
+-------------------------------------
+
+### Filters
+
+```{r}
+filter_slider(
+  id = "decile",
+  column = "decile",
+  label = "Filter areas based on decile rank",
+  sharedData = sd,
+  step = 1,
+  round = TRUE,
+  ticks = TRUE
+)
+```
+
+```{r} 
+bscols(
+filter_select(
+  id = "sa2_name16",
+  label="Filter areas based on name",
+  sharedData = sd,
+ group = ~sa2_name16
+)
+)
+```
+
+### Datatable
+
+```{r}
+
+sd %>% DT::datatable(
+  #filter = "top",
+  extensions = c("Scroller", "Buttons"),
+  rownames = TRUE,
+  colnames = c('Statistical Area (SA2)' = 'sa2_name16',
+               'Area km^2' = 'areasqkm16',
+               'Accidents' = 'crashes',
+               'Accidents/km^2' = 'crashes_sq_km',
+               'Decile rankings' = 'decile'),
+  style = "bootstrap",
+  class = "compact",
+  width = "100%",
+  options = list(
+    dom = "Blrtip",
+    deferRender = TRUE,
+    scrollY = 300,
+    scroller = TRUE,
+    columnDefs = list(
+      list(targets = c(0,1,2,4,5,6,7,8,9,10,11,13,14,16,19), visible = FALSE)),
+    buttons = list("csv", "excel"))
+)
+
+
+```
+
+Column {data-width=600}
+-------------------------------------
+
+### Maps
+
+```{r}
+
+library(leafem)
+
+sd %>% leaflet(
+  options = leafletOptions(
+    zoomControl = FALSE,
+    attributionControl = FALSE
+  )
+) %>% 
+  setView(
+    lng = 149,
+    lat = -35.46,
+    zoom = 9
+  ) %>% 
+  addProviderTiles(providers$CartoDB.PositronNoLabels,
+                   group = "Light",
+                   options = tileOptions(
+                     minZoom = 8, maxZoom = 11,
+                     useCache = TRUE, crossOrigin = TRUE
+                   )) %>% 
+  addPolygons(
+    stroke = TRUE,
+    color = "black",
+    dashArray = "1",
+    opacity = 1,
+    weight = 0.5, 
+    smoothFactor = 0.2,
+    fillColor = "transparent"
+  ) %>% 
+  addCircleMarkers(
+    lng = ~cent_lng,
+    lat = ~cent_lat,
+    stroke = TRUE,
+    weight = 0.5,
+    #radius = 3.75,
+    color = "transparent",
+    fillColor = "transparent",
+    label = purrr::map(glue::glue("<span style ='color:{act_crashes_sa2$color}'>{act_crashes_sa2$crashes_sq_km}<span>"), htmltools::HTML),
+    #label = ~round(crashes_sq_km, 2),
+    labelOptions = labelOptions(
+      noHide = TRUE,
+      direction = "center",
+      textOnly = TRUE,
+      style = list(
+        "font-family" = "Arial",
+        "font-weight" = "bolder",
+        "font-size" = "10px"
+      )
+    )
+  ) %>% addMouseCoordinates()
+  
+  
+```
+
+
+
+
+
+

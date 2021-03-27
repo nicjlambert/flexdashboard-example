@@ -1,0 +1,6 @@
+^dashboardtemplate\.Rproj$
+^\.Rproj\.user$
+^dashboardtemplate\.Rcheck$
+^dashboardtemplate.*\.tar\.gz$
+^dashboardtemplate.*\.tgz$
+^data-raw$
