@@ -43,7 +43,7 @@ filter_slider(
 
 filter_checkbox(
   id = 'bins',
-  label = 'Top and bottom',
+  label = 'Filter areas based on top and/or bottom 10%',
   sharedData = sd,
   group = ~bins
 )
