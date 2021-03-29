@@ -1,5 +1,5 @@
 ---
-title: "dashboardtemplate"
+title: "Car accidents of all types between 1999 and 2007"
 output:
   flexdashboard::flex_dashboard:
     navbar:
@@ -40,6 +40,13 @@ filter_slider(
   round = TRUE,
   ticks = TRUE
 )
+
+filter_checkbox(
+  id = 'bins',
+  label = 'Top and bottom',
+  sharedData = sd,
+  group = ~bins
+)
 ```
 
 ```{r} 
@@ -48,7 +55,7 @@ filter_select(
   id = "sa2_name16",
   label="Filter areas based on name",
   sharedData = sd,
- group = ~sa2_name16
+  group = ~sa2_name16
 )
 )
 ```
@@ -100,7 +107,7 @@ sd %>% leaflet(
   setView(
     lng = 149,
     lat = -35.46,
-    zoom = 9
+    zoom = 10
   ) %>% 
   addProviderTiles(providers$CartoDB.PositronNoLabels,
                    group = "Light",
