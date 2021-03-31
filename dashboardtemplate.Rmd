@@ -31,6 +31,7 @@ Column {data-height=2}
 ### Filters
 
 ```{r}
+
 filter_slider(
   id = "decile",
   column = "decile",
@@ -122,7 +123,17 @@ sd %>% leaflet(
     opacity = 1,
     weight = 0.5, 
     smoothFactor = 0.2,
-    fillColor = "transparent"
+    fillColor = "transparent",
+    fillOpacity = 0.7,
+    highlight = highlightOptions(
+      color = "#2b219b",
+      dashArray = "3",
+      opacity = 1,
+      weight = 2,
+      fillOpacity = 0.7,
+      fillColor = "#2b219b",
+      bringToFront = TRUE
+    )
   ) %>% 
   addCircleMarkers(
     lng = ~cent_lng,
