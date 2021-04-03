@@ -125,6 +125,7 @@ sd %>% leaflet(
     smoothFactor = 0.2,
     fillColor = "transparent",
     fillOpacity = 0.7,
+    label = ~sa2_name16,  # SLA name as a hover label
     highlight = highlightOptions(
       color = "#2b219b",
       dashArray = "3",
