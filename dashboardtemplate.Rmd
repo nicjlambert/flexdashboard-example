@@ -173,7 +173,8 @@ sd %>% leaflet(
 .navbar-inverse .navbar-brand:hover,
 .navbar-inverse .navbar-brand:focus {
   color: yellow;
-  background-color: transparent;
+  background-color: #20B2AA; # alt: transparent
+  border-color: #20B2AA;
 }
 .navbar-inverse .navbar-text {
   color: #777;
@@ -263,7 +264,7 @@ fieldset[disabled] .navbar-inverse .btn-link:focus {
 
 
 body {
-  padding-top: 60px;
+  padding-top: 60px; # default: 60px
   background: rgba(0,0,0,0.015);
 }
 
