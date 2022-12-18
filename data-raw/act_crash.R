@@ -67,8 +67,8 @@ print(head(processed_data))
 create_act_crash_dataset <- function(df) {
    # Create the `act_crash` dataset from the processed data
   act_crash <- df %>%
-   select(year, latitude, longitude, crash_severity) %>%
-    group_by(year, latitude, longitude, crash_severity) %>%
+   select(year, crash_id, latitude, longitude, crash_severity) %>%
+    group_by(year, crash_id, latitude, longitude, crash_severity) %>%
     summarize(count = n())
   
   # Return the `act_crash` dataset
@@ -81,49 +81,40 @@ act_crash <- create_act_crash_dataset(processed_data)
 # Print the first few rows of the `act_crash` dataset
 print(head(act_crash))
 
-
 # Read features from shape file
+sa2_shp <- st_read("SA2_2016_AUST.shp") %>%
+  clean_names() %>%
+  filter(ste_name16 == "Australian Capital Territory") %>%
+  st_transform(4283)
 
-shp <- st_read("SA2_2016_AUST.shp") %>%
- clean_names() %>%
- filter(ste_name16 == "Australian Capital Territory") %>%
- st_transform(4283)
-
-# Find centroid of each county
-shp$cent_lng <- st_coordinates(st_centroid(shp))[,1] 
-shp$cent_lat <- st_coordinates(st_centroid(shp))[,2] 
+# Find centroid of each county and add columns to data frame
+sa2_shp <- sa2_shp %>%
+  mutate(cent_lng = st_coordinates(st_centroid(sa2_shp))[,1],
+         cent_lat = st_coordinates(st_centroid(sa2_shp))[,2])
 
 # Check the coordinate reference system (CRS) of object
-st_crs(shp)
+st_crs(sa2_shp)
 
-
-### join point and polygon data ################################################
+# Join point and polygon data 
 
 act_crash <- act_crash %>%
- filter(!is.na(latitude),!is.na(longitude)) %>%
- st_as_sf(coords = c("longitude", "latitude"), crs = 4283) %>%
- st_join(shp["sa2_name16"])
+  filter(!is.na(latitude),!is.na(longitude)) %>%
+  st_as_sf(coords = c("longitude", "latitude"), crs = 4283) %>%
+  st_join(sa2_shp["sa2_name16"])
 
 # Count unique crashes per SA2 in ACT
-#count <- act_crash %>%
-# as_tibble() %>%
-# group_by(sa2_name16) %>%
-# summarise(
-#   crashes = n_distinct(crash_id)) %>%
-# print()
-#
+count <- act_crash %>%
+  as_tibble() %>%
+  group_by(sa2_name16) %>%
+  summarise(
+    crashes = n_distinct(crash_id))
+
 # join  count with sa2 in ACT, calc crash density
-#ct_crashes_sa2 <- left_join(shp, count, by = c("sa2_name16" = "sa2_name16")) %>%
-# mutate(crashes_sq_km = round(crashes / areasqkm16, 2),
-#        decile = ntile(crashes_sq_km, 10),
-#        color = ifelse(decile == 1, "blue", ifelse(decile == 10, "red", "black")),
-#        bins = ifelse(decile == 1 ,"Area in bottom 10% for accidents", ifelse(decile == 10, "Area in top 10% for accidents", NA)))
-# #filter(!is.na(crashes)) %>%
-#limpse(act_crashes_sa2)
-#
-#-------------------------------------------------------------------------------
-### save data ##################################################################
-#
-#sethis::use_data(act_crashes_sa2, overwrite = TRUE)
-#
-#m(point, shp, act_crash, count)
+act_crashes_sa2 <- left_join(shp, count, by = c("sa2_name16" = "sa2_name16")) %>%
+ mutate(crashes_sq_km = round(crashes / areasqkm16, 2),
+        decile = ntile(crashes_sq_km, 10),
+        color = ifelse(decile == 1, "blue", ifelse(decile == 10, "red", "black")),
+        bins = ifelse(decile == 1 ,"Area in bottom 10% for accidents", ifelse(decile == 10, "Area in top 10% for accidents", NA)))
+ filter(!is.na(crashes)) %>%
+glimpse(act_crashes_sa2)
+
