@@ -1,72 +1,111 @@
 #! /usr/bin/R
-## code to prepare `act_crash` dataset goes here
 
+# This script downloads and processes crash data from the Australian Capital Territory (ACT).
+
+# Set the time zone to "Australia/Sydney"
 Sys.setenv("TZ"="Australia/Sydney")
 
-#-------------------------------------------------------------------------------
-### ACT crash data sourced from ################################################
-### https://www.data.act.gov.au/Transport/ACT-Road-Crash-Data/6jn4-m8rx ########
+# Define a list of packages to check
+required_packages <- c("janitor", "rgeos", "sf", "dplyr", "stringr")
 
-# Check if packages are installed and install them if necessary
-# Set the CRAN mirror to use
-CRAN <- "https://cran.csiro.au"
-
-# Define the packages to check
-packages <- c("janitor", "rgeos", "sf")
-
-# Check if packages are installed and install them if necessary
-lapply(packages, function(x) {
-  # Check if the package is installed
-  if (!require(x, character.only = TRUE)) {
-    # Install the package with dependencies
-    install.packages(x, dependencies = TRUE, repos = CRAN)
+# Check if the required packages are installed and install them if necessary
+install_required_packages <- function(pkgs) {
+  for (pkg in pkgs) {
+    # Check if the package is installed
+    if (!require(pkg, character.only = TRUE)) {
+      # Install the package with dependencies
+      install.packages(pkg, dependencies = TRUE, repos = "https://cran.csiro.au")
+    }
+    # Load the package into the current R session
+    library(pkg, character.only = TRUE)
   }
-  # Load the package into the current R session
-  library(x, character.only = TRUE)
-})
+}
 
-#-------------------------------------------------------------------------------
-### point data #################################################################
+# Install the required packages
+install_required_packages(required_packages)
 
-tf <- tempfile()
+# Define the URL of the CSV file to download
+csv_url <- "https://www.data.act.gov.au/api/views/6jn4-m8rx/rows.csv?accessType=DOWNLOAD"
 
-download.file("https://www.data.act.gov.au/api/views/6jn4-m8rx/rows.csv?accessType=DOWNLOAD", tf)
+# Define a function to download and read the CSV file
+download_and_read_csv <- function(url) {
+  # Create a temporary file
+  temp_file <- tempfile()
+  
+  # Download the CSV file to the temporary file
+  download.file(url, temp_file)
+  
+  # Read the CSV file into an R data frame
+  df <- read.csv(temp_file)
+  print(head(df))
+  
+  # Delete the temporary file
+  unlink(temp_file)
+  
+  # Return the data frame
+  return(df)
+}
 
-point <- read.csv(tf) 
+# Download and read the CSV file
+point_data <- download_and_read_csv(csv_url)
 
-print(head(point))
+## Define a function to process the data
+process_data <- function(df) {
+  # Clean and transform the data as needed
+  cleaned_df <- df %>%
+    clean_names() %>%
+    mutate(year = substr(crash_date,7,10))
+  
+  # Return the cleaned data frame
+  return(cleaned_df)
+}
 
-# Delete the temporary file
-unlink(tf)
-#%>%
-#  clean_names() %>%
-#  mutate(crash_hour = as.integer(substr(crash_time, 1, 2)))
-#glimpse(point)
+# Process the data
+processed_data <- process_data(point_data)
+print(head(processed_data))
+# Define a function to create the `act_crash` dataset
+create_act_crash_dataset <- function(df) {
+   # Create the `act_crash` dataset from the processed data
+  act_crash <- df %>%
+   select(year, latitude, longitude, crash_severity) %>%
+    group_by(year, latitude, longitude, crash_severity) %>%
+    summarize(count = n())
+  
+  # Return the `act_crash` dataset
+  return(act_crash)
+}
 
-#-------------------------------------------------------------------------------
-### polygon data (shapefile) ###################################################
-#
-#hp <- st_read(here::here("data-raw/SA2_2016_AUST.shp")) %>%
-# clean_names() %>%
-# filter(ste_name16 == "Australian Capital Territory") %>%
-# st_transform(4283)
-#
-# find centroid of each county
-#hp$cent_lng <- st_coordinates(st_centroid(shp))[,1] # add longitude to sf
-#hp$cent_lat <- st_coordinates(st_centroid(shp))[,2] # add latitude to sf
-# checking coordinate reference system of object
-#t_crs(shp)
-#
-#-------------------------------------------------------------------------------
+# Create the `act_crash` dataset
+act_crash <- create_act_crash_dataset(processed_data)
+
+# Print the first few rows of the `act_crash` dataset
+print(head(act_crash))
+
+
+# Read features from shape file
+
+shp <- st_read("SA2_2016_AUST.shp") %>%
+ clean_names() %>%
+ filter(ste_name16 == "Australian Capital Territory") %>%
+ st_transform(4283)
+
+# Find centroid of each county
+shp$cent_lng <- st_coordinates(st_centroid(shp))[,1] 
+shp$cent_lat <- st_coordinates(st_centroid(shp))[,2] 
+
+# Check the coordinate reference system (CRS) of object
+st_crs(shp)
+
+
 ### join point and polygon data ################################################
-#
-#ct_crash <- point %>%
-# filter(!is.na(latitude),!is.na(longitude)) %>%
-# st_as_sf(coords = c("longitude", "latitude"), crs = 4283) %>%
-# st_join(shp["sa2_name16"])
-#
-# count unique crashes per sa2 in ACT
-#ount <- act_crash %>%
+
+act_crash <- act_crash %>%
+ filter(!is.na(latitude),!is.na(longitude)) %>%
+ st_as_sf(coords = c("longitude", "latitude"), crs = 4283) %>%
+ st_join(shp["sa2_name16"])
+
+# Count unique crashes per SA2 in ACT
+#count <- act_crash %>%
 # as_tibble() %>%
 # group_by(sa2_name16) %>%
 # summarise(
