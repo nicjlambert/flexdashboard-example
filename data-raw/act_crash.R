@@ -122,3 +122,5 @@ act_crashes_sa2 <- left_join(sa2_shp, count,
                 ifelse(decile == 10, "Area in top 10% for accidents", NA))
          ) %>%
  filter(!is.na(crashes))
+
+ save(act_crashes_sa2, "/data/processed/act_crashes_sa2.RData")
