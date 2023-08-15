@@ -17,6 +17,7 @@ library(here)
 library(purrr)
 library(crosstalk)
 
+# Load Data
 load(here::here("data/act_crashes_sa2.rda"))
 
 sd <- SharedData$new(act_crashes_sa2)
@@ -99,64 +100,19 @@ Column {data-width=600}
 
 library(leafem)
 
-sd %>% leaflet(
-  options = leafletOptions(
-    zoomControl = FALSE,
-    attributionControl = FALSE
-  )
-) %>% 
-  setView(
-    lng = 149,
-    lat = -35.46,
-    zoom = 10
-  ) %>% 
-  addProviderTiles(providers$CartoDB.PositronNoLabels,
-                   group = "Light",
-                   options = tileOptions(
-                     minZoom = 8, maxZoom = 11,
-                     useCache = TRUE, crossOrigin = TRUE
-                   )) %>% 
-  addPolygons(
-    stroke = TRUE,
-    color = "black",
-    dashArray = "1",
-    opacity = 1,
-    weight = 0.5, 
-    smoothFactor = 0.2,
-    fillColor = "transparent",
-    fillOpacity = 0.7,
-    label = ~sa2_name16,  # SLA name as a hover label
-    highlight = highlightOptions(
-      color = "#008B8B",
-      dashArray = "3",
-      opacity = 1,
-      weight = 2,
-      fillOpacity = 0.7,
-      fillColor = "#008B8B",
-      bringToFront = TRUE
-    )
-  ) %>% 
-  addCircleMarkers(
-    lng = ~cent_lng,
-    lat = ~cent_lat,
-    stroke = TRUE,
-    weight = 0.5,
-    #radius = 3.75,
-    color = "transparent",
-    fillColor = "transparent",
-    label = purrr::map(glue::glue("<span style ='color:{act_crashes_sa2$color}'>{act_crashes_sa2$crashes_sq_km}<span>"), htmltools::HTML),
-    #label = ~round(crashes_sq_km, 2),
-    labelOptions = labelOptions(
-      noHide = TRUE,
-      direction = "center",
-      textOnly = TRUE,
-      style = list(
-        "font-family" = "Arial",
-        "font-weight" = "bolder",
-        "font-size" = "10px"
-      )
-    )
-  ) %>% addMouseCoordinates()
+# Maps Section
+leaflet_options <- leafletOptions(zoomControl = FALSE, attributionControl = FALSE)
+tile_options <- tileOptions(minZoom = 8, maxZoom = 11, useCache = TRUE, crossOrigin = TRUE)
+highlight_options <- highlightOptions(color = "#008B8B", dashArray = "3", opacity = 1, weight = 2, fillOpacity = 0.7, fillColor = "#008B8B", bringToFront = TRUE)
+label_options <- labelOptions(noHide = TRUE, direction = "center", textOnly = TRUE, style = list("font-family" = "Arial", "font-weight" = "bolder", "font-size" = "10px"))
+
+sd %>%
+  leaflet(options = leaflet_options) %>%
+  setView(lng = 149, lat = -35.46, zoom = 10) %>%
+  addProviderTiles(providers$CartoDB.PositronNoLabels, group = "Light", options = tile_options) %>%
+  addPolygons(stroke = TRUE, color = "black", dashArray = "1", opacity = 1, weight = 0.5, smoothFactor = 0.2, fillColor = "transparent", fillOpacity = 0.7, label = ~sa2_name16, highlight = highlight_options) %>%
+  addCircleMarkers(lng = ~cent_lng, lat = ~cent_lat, stroke = TRUE, weight = 0.5, color = "transparent", fillColor = "transparent", label = purrr::map(glue::glue("<span style ='color:{act_crashes_sa2$color}'>{act_crashes_sa2$crashes_sq_km}<span>"), htmltools::HTML), labelOptions = label_options) %>%
+  addMouseCoordinates()
   
   
 ```
